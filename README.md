@@ -36,6 +36,42 @@ As a crazy example of many parallel connections of the above commands would be t
 
 One of the main features of `getENA.py` is that it automatically confirms the integrity of the FASTQ file when you download it. If the connection is lost, if ENA cancels the connection or if the `getENA.py` is stopped, you can run the program again and restart the download without losing the files that were already downloaded.
 
+By default the output directory of getENA.py is in a folder called ENA_out the current directory. It can be modified with the -o argument. For example:
+
+`getENA.py -o Cperfringens -t 64 -p PRJNA350702 PRJNA285473 PRJNA508810`
+
+
+# Output files
+
+The scheme of the files and folders created follows the next format:
+
+``` 
+|Current_dir
+|-- PRJNA350702.tsv
+|-- PRJNA350702
+|---- ERR0001_1.fastq.gz
+|---- ERR0001_2.fastq.gz
+|---- ...
+|---- ERR0009_1.fastq.gz
+|---- ERR0009_2.fastq.gz
+|-- PRJNA285473.tsv
+|-- PRJNA285473
+|---- ERR0001_1.fastq.gz
+|---- ERR0001_2.fastq.gz
+|---- ...
+|---- ERR0009_1.fastq.gz
+|---- ERR0009_2.fastq.gz
+|-- PRJNA508810.tsv
+|-- PRJNA508810
+|---- ERR0001_1.fastq.gz
+|---- ERR0001_2.fastq.gz
+|---- ...
+|---- ERR0009_1.fastq.gz
+|---- ERR0009_2.fastq.gz
+```
+
+Where PRJNA350702.tsv, PRJNA285473.tsv and PRJNA508810.tsv are the metadata of selected project. The folders PRJNA350702, PRJNA285473 and PRJNA508810 contain all FASTQ file of each project
+
 # Licence
 
 [GPL v3](https://raw.githubusercontent.com/EnzoAndree/getENA/master/LICENSE)
