@@ -12,17 +12,17 @@ Alternatively, from GitHub
 
 `pip install git+https://github.com/EnzoAndree/getENA`
 ## Usage
-Let's say I'm interested in _Clostridium perfringens_ sequencing projects, we have to search ENA for public sequencing projects at https://www.ebi.ac.uk/ena/browser/text-search?query=clostridium%20perfringens. Here, we choose the codes that we need, for example:
+Let's say I'm interested in _Clostridium perfringens_ sequencing projects; we have to search ENA for public sequencing projects at https://www.ebi.ac.uk/ena/browser/text-search?query=clostridium%20perfringens. Here, we choose the codes that we need, for example:
 
 `PRJNA350702 PRJNA285473 PRJNA508810`
 
 We have 2 options to download the FASTQ files, (1) add the project codes to the command line separated by spaces as an argument, or (2) make a file containing a list of all the project codes that need.
 
-For the first option (recommended for few projects for example < 5) we run the following
+For the first option (recommended for few projects, e.g. >= 5) we run the following
 
 `getENA.py -p PRJNA350702 PRJNA285473 PRJNA508810`
 
-For the second option (recommended for many projects e.g. >= 5) we run the following
+For the second option (recommended for many projects, e.g. >= 5) we run the following
 
 `getENA.py -pfile ena.list.txt`
 
