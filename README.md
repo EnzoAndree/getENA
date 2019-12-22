@@ -46,7 +46,7 @@ By default the output directory of getENA.py is in a folder called ENA_out the c
 The scheme of the files and folders created follows the next format:
 
 ``` 
-|Current_dir
+|ENA_out
 |-- PRJNA350702.tsv
 |-- PRJNA350702
 |---- ERR0001_1.fastq.gz
