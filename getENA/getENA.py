@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 from sys import version_info
 import pandas as pd
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--threads', type=int, default=12,
                         help='Number of threads to use (default 12)')
     parser.add_argument('-V', '--version', action='version',
-                        version='%(prog)s 1.0')
+                        version='%(prog)s 1.0.4')
     args = parser.parse_args()
     xmlurl = 'http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession={}&result=read_run'
     if args.projects:
@@ -71,7 +72,7 @@ if __name__ == '__main__':
                 genome.append(result)
             t.close()
             t.join()
-    if args.projectfile:
+    elif args.projectfile:
         projects = [line.rstrip('\n') for line in open(args.projectfile) if line.strip() != '']
         for projectid in projects:
             print('Starting with ' + projectid)
@@ -92,3 +93,5 @@ if __name__ == '__main__':
                 genome.append(result)
             t.close()
             t.join()
+    else:
+        parser.print_help()
