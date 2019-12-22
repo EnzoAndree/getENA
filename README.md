@@ -1,7 +1,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![PyPI release](https://img.shields.io/pypi/v/ncbi-genome-download.svg)](https://pypi.python.org/pypi/getENA/)
 # getENA
-Sometimes we need to download a sequencing project from ENA, fortunately ENA offers in its platform a link to the 
+Sometimes we need to download a sequencing project from ENA; fortunately ENA offers in its platform a link to the 
 file that we need. However, we can spend a lot of time downloading files manually if the amount of files is large.
 
 I have developed a small project in Python to be able to do this work in an automated and parallel way to increase the performance.
