@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 # This call to setup() does all the work
 setup(
     name="getENA",
-    version="1.0.4",
+    version="1.1.0",
     description="Read the latest Real Python tutorials",
     url="https://github.com/EnzoAndree/getENA",
     author="Enzo Guerrero-Araya",
