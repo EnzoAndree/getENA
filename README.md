@@ -65,7 +65,7 @@ The scheme of the files and folders created follows the next format:
 
 ```
 
-Where `PRJNA350702.tsv`, `PRJNA285473.tsv` and `PRJNA508810.tsv` are the metadata of selected projects and `metadata.tsv is a merge of this three files. The folder `ENA_out`, contain all FASTQ file of each project
+Where `PRJNA350702.tsv`, `PRJNA285473.tsv` and `PRJNA508810.tsv` are the metadata of selected projects and `metadata.tsv` is a merge of this three files. The folder `ENA_out`, contain all FASTQ file of each project
 
 # Licence
 
