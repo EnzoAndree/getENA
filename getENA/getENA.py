@@ -46,18 +46,21 @@ def download_fastq(inputdata):
             md5cheked = True
     return '[OK] {}'.format(codename)
 
-def urlretrieve_converter(url_path):
+def urlretrieve_converter(url_path, attmp=0):
+    if attmp > 15:
+        print('Error', *url_path)
+        return False
     try:
         return urlretrieve(*url_path)
     except ContentTooShortError as e:
-        print('Retry', *url_path)
-        urlretrieve_converter(url_path)
+        print('Retry {}/15'.format(attmp + 1), *url_path)
+        urlretrieve_converter(url_path, attmp + 1)
     except URLError as e:
-        print(url_path[0], 'was moved')
-        return False
+        print('Retry {}/15'.format(attmp + 1), *url_path)
+        urlretrieve_converter(url_path, attmp + 1)
 
 if __name__ == '__main__':
-    V = '%(prog)s v1.2.1'
+    V = '%(prog)s v1.2.2'
     parser = argparse.ArgumentParser(description='Download FASTQ files from ENA ({})'.format(V))
     parser.add_argument('-acc', '--acc', type=str, nargs='*')
     parser.add_argument('-accfile', '--accfile', type=str)
