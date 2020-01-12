@@ -16,10 +16,10 @@ else:
     from pathlib import Path
 try:
     from urllib.request import urlretrieve
-    from urllib.error import ContentTooShortError
+    from urllib.error import (ContentTooShortError, URLError)
 except ImportError:
     from urllib import urlretrieve
-    from urllib import ContentTooShortError
+    from urllib.error import (ContentTooShortError, URLError)
 
 def download_fastq(inputdata):
     df, outpath = inputdata
@@ -52,9 +52,12 @@ def urlretrieve_converter(url_path):
     except ContentTooShortError as e:
         print('Retry', *url_path)
         urlretrieve_converter(url_path)
+    except URLError as e:
+        print(url_path[0], 'was moved')
+        return False
 
 if __name__ == '__main__':
-    V = '%(prog)s v1.2.0'
+    V = '%(prog)s v1.2.1'
     parser = argparse.ArgumentParser(description='Download FASTQ files from ENA ({})'.format(V))
     parser.add_argument('-acc', '--acc', type=str, nargs='*')
     parser.add_argument('-accfile', '--accfile', type=str)
@@ -131,7 +134,7 @@ if __name__ == '__main__':
         genomeoutputpath.mkdir(exist_ok=True, parents=True)
         accout = [genomeoutputpath/(fasta.split('/')[-1]) for fasta in fastas]
         metadata = []
-        multipleargs = [(u, a) for (u, a) in zip(fastas, accout)if not a.is_file()]
+        multipleargs = [(u, a) for (u, a) in zip(fastas, accout)]
         with ThreadPool(args.threads) as p:
             for result in tqdm(p.imap_unordered(urlretrieve_converter, multipleargs), total=len(multipleargs), desc='Downloading genomes using {} threads'.format(args.threads), unit='metadatas'):
                 metadata.append(result)
