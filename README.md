@@ -67,6 +67,12 @@ The scheme of the files and folders created follows the next format:
 
 Where `PRJNA350702.tsv`, `PRJNA285473.tsv` and `PRJNA508810.tsv` are the metadata of selected projects and `metadata.tsv` is a merge of this three files. The folder `ENA_out`, contain all FASTQ file of each project
 
+If you only want to get the assemblies reported in ENA, you can get all the FASTA files for a given taxon ID. In this case the taxon id of _Clostridium perfringens_ is `1502`. So the command line to download all assemblies of this species is:
+
+`python getENA.py -o Cperfringens -tax 1502`
+
+This command line will generate a `genomes` directory within the Cperfringens folder where all assemblies reported to date are placed
+
 # Licence
 
 [GPL v3](https://raw.githubusercontent.com/EnzoAndree/getENA/master/LICENSE)
