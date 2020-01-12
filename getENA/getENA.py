@@ -60,7 +60,7 @@ def urlretrieve_converter(url_path, attmp=0):
         urlretrieve_converter(url_path, attmp + 1)
 
 if __name__ == '__main__':
-    V = '%(prog)s v1.2.2'
+    V = '%(prog)s v1.2.3'
     parser = argparse.ArgumentParser(description='Download FASTQ files from ENA ({})'.format(V))
     parser.add_argument('-acc', '--acc', type=str, nargs='*')
     parser.add_argument('-accfile', '--accfile', type=str)
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         metadata = []
         multipleargs = [(u, a) for (u, a) in zip(fastas, accout)]
         with ThreadPool(args.threads) as p:
-            for result in tqdm(p.imap_unordered(urlretrieve_converter, multipleargs), total=len(multipleargs), desc='Downloading genomes using {} threads'.format(args.threads), unit='metadatas'):
+            for result in tqdm(p.imap_unordered(urlretrieve_converter, multipleargs), total=len(multipleargs), desc='Downloading Genomes using {} threads'.format(args.threads), unit='Genomes'):
                 metadata.append(result)
 
     else:
