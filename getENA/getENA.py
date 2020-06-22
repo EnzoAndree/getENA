@@ -32,20 +32,30 @@ def download_fastq(inputdata):
     md5cheked = False
     while not md5cheked:
         listmd5 = []
-        for pair, md5pair in zip(row['fastq_ftp'].split(';'), row['fastq_md5'].split(';')):
-            outfile = outpath / pair.split('/')[-1]
-            if outfile.is_file() and md5(open(outfile,'rb').read()).hexdigest() == md5pair:
-                listmd5.append(1)
+        try:
+            if not row['fastq_ftp'].isnull().values.any()
+                for pair, md5pair in zip(row['fastq_ftp'].split(';'), row['fastq_md5'].split(';')):
+                    outfile = outpath / pair.split('/')[-1]
+                    if outfile.is_file() and md5(open(outfile,'rb').read()).hexdigest() == md5pair:
+                        listmd5.append(1)
+                    else:
+                        try:
+                            urlretrieve('ftp://' + pair, outfile)
+                        except Exception as e:
+                            listmd5.append(0)
+                            break
+                        if md5(open(outfile,'rb').read()).hexdigest() == md5pair:
+                            listmd5.append(1)
+                        else:
+                            listmd5.append(0)
             else:
-                try:
-                    urlretrieve('ftp://' + pair, outfile)
-                except Exception as e:
-                    listmd5.append(0)
-                    break
-                if md5(open(outfile,'rb').read()).hexdigest() == md5pair:
-                    listmd5.append(1)
-                else:
-                    listmd5.append(0)
+                md5cheked = True
+        except Exception as e:
+            print(e, file=open('errorslogs.txt', 'a'))
+            print(row, file=open('errorslogs.txt', 'a'))
+            print(row['fastq_ftp'], file=open('errorslogs.txt', 'a'))
+            print(row['fastq_md5'], file=open('errorslogs.txt', 'a'))
+            md5cheked = True
         if all(listmd5):
             md5cheked = True
     return '[OK] {}'.format(codename)
@@ -64,7 +74,7 @@ def urlretrieve_converter(url_path, attmp=0):
         urlretrieve_converter(url_path, attmp + 1)
 
 if __name__ == '__main__':
-    V = '%(prog)s v1.2.3'
+    V = '%(prog)s v1.2.5'
     parser = argparse.ArgumentParser(description='Download FASTQ files from ENA ({})'.format(V))
     parser.add_argument('-acc', '--acc', type=str, nargs='*')
     parser.add_argument('-taxacc', '--taxacc', type=int)
@@ -96,7 +106,7 @@ if __name__ == '__main__':
             multipleargs = list(zip(concat_frames.iterrows(), repeat(outputpath)))
             for result in tqdm(p.imap_unordered(download_fastq, multipleargs), total=len(multipleargs), desc='Downloading Genomes using {} threads'.format(args.threads), unit='Genomes'):
                 genome.append(result)
-        concat_frames.to_csv(outputpath/'metadata.tsv', index=False, sep='\t')
+        concat_frames.to_csv(outputpath/'metadata_{}.tsv'.format(datetime.today().strftime('%Y%m%d')), index=False, sep='\t')
     elif args.accfile:
         accs = [line.rstrip('\n') for line in open(args.accfile) if line.strip() != '']
         outputpath = Path(args.outfiles)
@@ -116,17 +126,21 @@ if __name__ == '__main__':
             multipleargs = list(zip(concat_frames.iterrows(), repeat(outputpath)))
             for result in tqdm(p.imap_unordered(download_fastq, multipleargs), total=len(multipleargs), desc='Downloading Genomes using {} threads'.format(args.threads), unit='Genomes'):
                 genome.append(result)
-        concat_frames.to_csv(outputpath/'metadata.tsv', index=False, sep='\t')
+        concat_frames.to_csv(outputpath/'metadata_{}_{}.tsv'.format(args.accfile, datetime.today().strftime('%Y%m%d')), index=False, sep='\t')
     elif args.taxacc:
         outputpath = Path(args.outfiles)
         tmpoutputpath = outputpath/'tmp'
         tmpoutputpath.mkdir(exist_ok=True, parents=True)
         xmltaxidrun = 'https://www.ebi.ac.uk/ena/browser/api/xml/links/taxon?accession={}&result=read_run&subtree=true'
-        xmlstrfile = ('{}_{}.xml'.format(args.taxacc, datetime.today().strftime('%Y-%m-%d')))
+        xmlstrfile = '{}_{}.xml'.format(args.taxacc, datetime.today().strftime('%Y%m%d'))
         xmlfile = tmpoutputpath / xmlstrfile
         if not xmlfile.is_file():
             urlretrieve(xmltaxidrun.format(args.taxacc), xmlfile)
-        runs = ET.parse(xmlfile)
+        try:
+            runs = ET.parse(xmlfile)
+        except xml.etree.ElementTree.ParseError as e:
+            urlretrieve(xmltaxidrun.format(args.taxacc), xmlfile)
+            runs = ET.parse(xmlfile)
         run_accessions = [x.attrib['accession'] for x in runs.findall('RUN')]
         accurl = [xmlurl.format(accid) for accid in run_accessions]
         accout = [tmpoutputpath/(accid+'.tsv') for accid in run_accessions]
@@ -137,7 +151,7 @@ if __name__ == '__main__':
                 metadata.append(result)
         frames = [pd.read_csv(tsv, sep='\t', index_col=5) for tsv in accout]
         concat_frames = pd.concat(frames, ignore_index=True)
-        metadatastr_xmlfile = 'metadata_{}_{}.tsv'.format(args.taxacc, datetime.today().strftime('%Y-%m-%d'))
+        metadatastr_xmlfile = 'metadata_{}_{}.tsv'.format(args.taxacc, datetime.today().strftime('%Y%m%d'))
         metadata_xmlfile = tmpoutputpath / metadatastr_xmlfile
         concat_frames.to_csv(metadata_xmlfile, index=False, sep='\t')
         #just download illumina/genomic runs
