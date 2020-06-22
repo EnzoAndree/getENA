@@ -8,6 +8,8 @@ from hashlib import md5
 from itertools import repeat
 from os import getcwd
 from re import compile
+import xml.etree.ElementTree as ET
+from datetime import datetime
 if version_info[0] < 3:
     from StringIO import StringIO
     from pathlib2 import Path  # pip2 install pathlib2
@@ -16,9 +18,11 @@ else:
     from pathlib import Path
 try:
     from urllib.request import urlretrieve
+    from urllib.request import urlopen
     from urllib.error import (ContentTooShortError, URLError)
 except ImportError:
     from urllib import urlretrieve
+    from urllib import urlopen
     from urllib.error import (ContentTooShortError, URLError)
 
 def download_fastq(inputdata):
@@ -63,6 +67,8 @@ if __name__ == '__main__':
     V = '%(prog)s v1.2.3'
     parser = argparse.ArgumentParser(description='Download FASTQ files from ENA ({})'.format(V))
     parser.add_argument('-acc', '--acc', type=str, nargs='*')
+    parser.add_argument('-taxacc', '--taxacc', type=int)
+    # parser.add_argument('-filter', '--filter', type=str)
     parser.add_argument('-accfile', '--accfile', type=str)
     parser.add_argument('-tax', '--taxid', type=str, nargs='*')
     parser.add_argument('-o', '--outfiles', type=str, default=getcwd() + '/' + 'ENA_out')
@@ -111,6 +117,37 @@ if __name__ == '__main__':
             for result in tqdm(p.imap_unordered(download_fastq, multipleargs), total=len(multipleargs), desc='Downloading Genomes using {} threads'.format(args.threads), unit='Genomes'):
                 genome.append(result)
         concat_frames.to_csv(outputpath/'metadata.tsv', index=False, sep='\t')
+    elif args.taxacc:
+        outputpath = Path(args.outfiles)
+        tmpoutputpath = outputpath/'tmp'
+        tmpoutputpath.mkdir(exist_ok=True, parents=True)
+        xmltaxidrun = 'https://www.ebi.ac.uk/ena/browser/api/xml/links/taxon?accession={}&result=read_run&subtree=true'
+        xmlstrfile = ('{}_{}.xml'.format(args.taxacc, datetime.today().strftime('%Y-%m-%d')))
+        xmlfile = tmpoutputpath / xmlstrfile
+        if not xmlfile.is_file():
+            urlretrieve(xmltaxidrun.format(args.taxacc), xmlfile)
+        runs = ET.parse(xmlfile)
+        run_accessions = [x.attrib['accession'] for x in runs.findall('RUN')]
+        accurl = [xmlurl.format(accid) for accid in run_accessions]
+        accout = [tmpoutputpath/(accid+'.tsv') for accid in run_accessions]
+        metadata = []
+        multipleargs = [(u, a) for (u, a) in zip(accurl, accout) if not a.is_file()]
+        with ThreadPool(args.threads) as p:
+            for result in tqdm(p.imap_unordered(urlretrieve_converter, multipleargs), total=len(multipleargs), desc='Downloading metadatas using {} threads'.format(args.threads), unit='metadatas'):
+                metadata.append(result)
+        frames = [pd.read_csv(tsv, sep='\t', index_col=5) for tsv in accout]
+        concat_frames = pd.concat(frames, ignore_index=True)
+        metadatastr_xmlfile = 'metadata_{}_{}.tsv'.format(args.taxacc, datetime.today().strftime('%Y-%m-%d'))
+        metadata_xmlfile = tmpoutputpath / metadatastr_xmlfile
+        concat_frames.to_csv(metadata_xmlfile, index=False, sep='\t')
+        #just download illumina/genomic runs
+        genomic_concat_frames = concat_frames.loc[(concat_frames['library_source'] == 'GENOMIC') & (concat_frames['instrument_platform'] == 'ILLUMINA')]
+        genome = []
+        with ThreadPool(args.threads) as p:
+            multipleargs = list(zip(genomic_concat_frames.iterrows(), repeat(outputpath)))
+            for result in tqdm(p.imap_unordered(download_fastq, multipleargs), total=len(multipleargs), desc='Downloading Genomes using {} threads'.format(args.threads), unit='Genomes'):
+                genome.append(result)
+
     elif args.taxid:
         regex = r'<URL>(ftp://.*fasta\.gz)</URL>'
         rgx = compile(regex)
@@ -139,7 +176,7 @@ if __name__ == '__main__':
         metadata = []
         multipleargs = [(u, a) for (u, a) in zip(fastas, accout)]
         with ThreadPool(args.threads) as p:
-            for result in tqdm(p.imap_unordered(urlretrieve_converter, multipleargs), total=len(multipleargs), desc='Downloading Genomes using {} threads'.format(args.threads), unit='Genomes'):
+            for result in tqdm(p.imap_unordered(urlretrieve_converter, multipleargs), total=len(multipleargs), desc='Downloading genomes using {} threads'.format(args.threads), unit='metadatas'):
                 metadata.append(result)
 
     else:
