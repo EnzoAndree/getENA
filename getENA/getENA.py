@@ -74,7 +74,7 @@ def urlretrieve_converter(url_path, attmp=0):
         urlretrieve_converter(url_path, attmp + 1)
 
 if __name__ == '__main__':
-    V = '%(prog)s v1.2.5'
+    V = '%(prog)s v1.2.4'
     parser = argparse.ArgumentParser(description='Download FASTQ files from ENA ({})'.format(V))
     parser.add_argument('-acc', '--acc', type=str, nargs='*')
     parser.add_argument('-taxacc', '--taxacc', type=int)
