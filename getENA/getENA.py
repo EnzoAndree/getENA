@@ -33,7 +33,7 @@ def download_fastq(inputdata):
     while not md5cheked:
         listmd5 = []
         try:
-            if not row['fastq_ftp'].isnull().values.any()
+            if not row['fastq_ftp'].isnull().values.any():
                 for pair, md5pair in zip(row['fastq_ftp'].split(';'), row['fastq_md5'].split(';')):
                     outfile = outpath / pair.split('/')[-1]
                     if outfile.is_file() and md5(open(outfile,'rb').read()).hexdigest() == md5pair:
