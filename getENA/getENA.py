@@ -25,6 +25,13 @@ except ImportError:
     from urllib import urlopen
     from urllib.error import (ContentTooShortError, URLError)
 
+def md5sum(filename, blocksize=65536):
+    hash = md5()
+    with open(filename, 'rb') as f:
+        for block in iter(lambda: f.read(blocksize), b''):
+            hash.update(block)
+    return hash.hexdigest()
+
 def download_fastq(inputdata):
     df, outpath = inputdata
     index, row = df
@@ -32,30 +39,20 @@ def download_fastq(inputdata):
     md5cheked = False
     while not md5cheked:
         listmd5 = []
-        try:
-            if not row['fastq_ftp'].isnull().values.any():
-                for pair, md5pair in zip(row['fastq_ftp'].split(';'), row['fastq_md5'].split(';')):
-                    outfile = outpath / pair.split('/')[-1]
-                    if outfile.is_file() and md5(open(outfile,'rb').read()).hexdigest() == md5pair:
-                        listmd5.append(1)
-                    else:
-                        try:
-                            urlretrieve('ftp://' + pair, outfile)
-                        except Exception as e:
-                            listmd5.append(0)
-                            break
-                        if md5(open(outfile,'rb').read()).hexdigest() == md5pair:
-                            listmd5.append(1)
-                        else:
-                            listmd5.append(0)
+        for pair, md5pair in zip(row['fastq_ftp'].split(';'), row['fastq_md5'].split(';')):
+            outfile = outpath / pair.split('/')[-1]
+            if outfile.is_file() and md5sum(outfile) == md5pair:
+                listmd5.append(1)
             else:
-                md5cheked = True
-        except Exception as e:
-            print(e, file=open('errorslogs.txt', 'a'))
-            print(row, file=open('errorslogs.txt', 'a'))
-            print(row['fastq_ftp'], file=open('errorslogs.txt', 'a'))
-            print(row['fastq_md5'], file=open('errorslogs.txt', 'a'))
-            md5cheked = True
+                try:
+                    urlretrieve('ftp://' + pair, outfile)
+                except Exception as e:
+                    listmd5.append(0)
+                    break
+                if md5sum(outfile) == md5pair:
+                    listmd5.append(1)
+                else:
+                    listmd5.append(0)
         if all(listmd5):
             md5cheked = True
     return '[OK] {}'.format(codename)
@@ -74,7 +71,7 @@ def urlretrieve_converter(url_path, attmp=0):
         urlretrieve_converter(url_path, attmp + 1)
 
 if __name__ == '__main__':
-    V = '%(prog)s v1.2.4'
+    V = '%(prog)s v1.2.5'
     parser = argparse.ArgumentParser(description='Download FASTQ files from ENA ({})'.format(V))
     parser.add_argument('-acc', '--acc', type=str, nargs='*')
     parser.add_argument('-taxacc', '--taxacc', type=int)
@@ -87,12 +84,12 @@ if __name__ == '__main__':
     parser.add_argument('-V', '--version', action='version',
                         version=V)
     args = parser.parse_args()
-    xmlurl = 'http://www.ebi.ac.uk/ena/data/warehouse/filereport?accession={}&result=read_run'
+    tsvurl = 'https://www.ebi.ac.uk/ena/portal/api/filereport?accession={}&fields=all&result=read_run'
     if args.acc:
         outputpath = Path(args.outfiles)
         tmpoutputpath = outputpath/'tmp'
         tmpoutputpath.mkdir(exist_ok=True, parents=True)
-        accurl = [xmlurl.format(accid) for accid in args.acc]
+        accurl = [tsvurl.format(accid) for accid in args.acc]
         accout = [tmpoutputpath/(accid+'.tsv') for accid in args.acc]
         metadata = []
         multipleargs = [(u, a) for (u, a) in zip(accurl, accout) if not a.is_file()]
@@ -106,13 +103,13 @@ if __name__ == '__main__':
             multipleargs = list(zip(concat_frames.iterrows(), repeat(outputpath)))
             for result in tqdm(p.imap_unordered(download_fastq, multipleargs), total=len(multipleargs), desc='Downloading Genomes using {} threads'.format(args.threads), unit='Genomes'):
                 genome.append(result)
-        concat_frames.to_csv(outputpath/'metadata_{}.tsv'.format(datetime.today().strftime('%Y%m%d')), index=False, sep='\t')
+        concat_frames.to_csv(tmpoutputpath/'metadata_{}.tsv'.format(datetime.today().strftime('%Y%m%d')), index=False, sep='\t')
     elif args.accfile:
         accs = [line.rstrip('\n') for line in open(args.accfile) if line.strip() != '']
         outputpath = Path(args.outfiles)
         tmpoutputpath = outputpath/'tmp'
         tmpoutputpath.mkdir(exist_ok=True, parents=True)
-        accurl = [xmlurl.format(accid) for accid in accs]
+        accurl = [tsvurl.format(accid) for accid in accs]
         accout = [tmpoutputpath/(accid+'.tsv') for accid in accs]
         metadata = []
         multipleargs = [(u, a) for (u, a) in zip(accurl, accout) if not a.is_file()]
@@ -121,28 +118,28 @@ if __name__ == '__main__':
                 metadata.append(result)
         frames = [pd.read_csv(tsv, sep='\t', index_col=5) for tsv in accout]
         concat_frames = pd.concat(frames, ignore_index=True)
+        genomic_concat_frames = concat_frames.loc[(concat_frames['library_source'] == 'GENOMIC') & (concat_frames['instrument_platform'] == 'ILLUMINA') & (concat_frames['fastq_md5'].notnull()) & (concat_frames['fastq_ftp'].notnull())]
+        metadatafiltredstr_tsvfile = 'metadata_filtred_{}_{}.tsv'.format(args.accfile.split('/')[-1], datetime.today().strftime('%Y%m%d'))
+        metadatafiltred_tsvfile = tmpoutputpath / metadatafiltredstr_tsvfile
+        genomic_concat_frames.to_csv(metadatafiltred_tsvfile, index=False, sep='\t')
         genome = []
         with ThreadPool(args.threads) as p:
             multipleargs = list(zip(concat_frames.iterrows(), repeat(outputpath)))
             for result in tqdm(p.imap_unordered(download_fastq, multipleargs), total=len(multipleargs), desc='Downloading Genomes using {} threads'.format(args.threads), unit='Genomes'):
                 genome.append(result)
-        concat_frames.to_csv(outputpath/'metadata_{}_{}.tsv'.format(args.accfile, datetime.today().strftime('%Y%m%d')), index=False, sep='\t')
+        concat_frames.to_csv(tmpoutputpath/'metadata_{}_{}.tsv'.format(args.accfile.split('/')[-1], datetime.today().strftime('%Y%m%d')), index=False, sep='\t')
     elif args.taxacc:
         outputpath = Path(args.outfiles)
         tmpoutputpath = outputpath/'tmp'
         tmpoutputpath.mkdir(exist_ok=True, parents=True)
-        xmltaxidrun = 'https://www.ebi.ac.uk/ena/browser/api/xml/links/taxon?accession={}&result=read_run&subtree=true'
-        xmlstrfile = '{}_{}.xml'.format(args.taxacc, datetime.today().strftime('%Y%m%d'))
-        xmlfile = tmpoutputpath / xmlstrfile
-        if not xmlfile.is_file():
-            urlretrieve(xmltaxidrun.format(args.taxacc), xmlfile)
-        try:
-            runs = ET.parse(xmlfile)
-        except xml.etree.ElementTree.ParseError as e:
-            urlretrieve(xmltaxidrun.format(args.taxacc), xmlfile)
-            runs = ET.parse(xmlfile)
-        run_accessions = [x.attrib['accession'] for x in runs.findall('RUN')]
-        accurl = [xmlurl.format(accid) for accid in run_accessions]
+        tsvtaxidrun = 'https://www.ebi.ac.uk/ena/portal/api/links/taxon?accession={}&result=read_run&subtree=true'
+        tsvstrfile = '{}_{}.tsv'.format(args.taxacc, datetime.today().strftime('%Y%m%d'))
+        tsvfile = tmpoutputpath / tsvstrfile
+        if not tsvfile.is_file():
+            urlretrieve(tsvtaxidrun.format(args.taxacc), tsvfile)
+        runs = pd.read_csv(tsvfile, sep='\t', index_col=0)
+        run_accessions = list(runs.index.values)
+        accurl = [tsvurl.format(accid) for accid in run_accessions]
         accout = [tmpoutputpath/(accid+'.tsv') for accid in run_accessions]
         metadata = []
         multipleargs = [(u, a) for (u, a) in zip(accurl, accout) if not a.is_file()]
@@ -151,17 +148,19 @@ if __name__ == '__main__':
                 metadata.append(result)
         frames = [pd.read_csv(tsv, sep='\t', index_col=5) for tsv in accout]
         concat_frames = pd.concat(frames, ignore_index=True)
-        metadatastr_xmlfile = 'metadata_{}_{}.tsv'.format(args.taxacc, datetime.today().strftime('%Y%m%d'))
-        metadata_xmlfile = tmpoutputpath / metadatastr_xmlfile
-        concat_frames.to_csv(metadata_xmlfile, index=False, sep='\t')
+        metadatastr_tsvfile = 'metadata_{}_{}.tsv'.format(args.taxacc, datetime.today().strftime('%Y%m%d'))
+        metadata_tsvfile = tmpoutputpath / metadatastr_tsvfile
+        concat_frames.to_csv(metadata_tsvfile, index=False, sep='\t')
         #just download illumina/genomic runs
-        genomic_concat_frames = concat_frames.loc[(concat_frames['library_source'] == 'GENOMIC') & (concat_frames['instrument_platform'] == 'ILLUMINA')]
+        genomic_concat_frames = concat_frames.loc[(concat_frames['library_source'] == 'GENOMIC') & (concat_frames['instrument_platform'] == 'ILLUMINA') & (concat_frames['fastq_md5'].notnull()) & (concat_frames['fastq_ftp'].notnull())]
+        metadatafiltredstr_tsvfile = 'metadata_filtred_{}_{}.tsv'.format(args.taxacc, datetime.today().strftime('%Y%m%d'))
+        metadatafiltred_tsvfile = tmpoutputpath / metadatafiltredstr_tsvfile
+        genomic_concat_frames.to_csv(metadatafiltred_tsvfile, index=False, sep='\t')
         genome = []
         with ThreadPool(args.threads) as p:
             multipleargs = list(zip(genomic_concat_frames.iterrows(), repeat(outputpath)))
             for result in tqdm(p.imap_unordered(download_fastq, multipleargs), total=len(multipleargs), desc='Downloading Genomes using {} threads'.format(args.threads), unit='Genomes'):
                 genome.append(result)
-
     elif args.taxid:
         regex = r'<URL>(ftp://.*fasta\.gz)</URL>'
         rgx = compile(regex)
