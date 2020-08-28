@@ -12,7 +12,7 @@ Alternatively, from GitHub
 
 `pip install git+https://github.com/EnzoAndree/getENA`
 ## Usage
-Let's say I'm interested in _Clostridium perfringens_ sequencing projects; we have to search ENA for public sequencing projects at https://www.ebi.ac.uk/ena/browser/text-search?query=clostridium%20perfringens. Here, we choose the codes that we need, for example:
+Let's say I'm interested in _Clostridium perfringens_ sequencing projects (WGS in Illumina platform, not RNA-seq nor Metagenomics); we have to search ENA for public sequencing projects at https://www.ebi.ac.uk/ena/browser/text-search?query=clostridium%20perfringens. Here, we choose the codes that we need, for example:
 
 `PRJNA350702 PRJNA285473 PRJNA508810`
 
@@ -67,15 +67,20 @@ The scheme of the files and folders created follows the next format:
 
 Where `PRJNA350702.tsv`, `PRJNA285473.tsv` and `PRJNA508810.tsv` are the metadata of selected projects and `metadata.tsv` is a merge of this three files. The folder `ENA_out`, contain all FASTQ file of each project
 
-If you only want to get the assemblies reported in ENA, you can get all the FASTA files for a given taxon ID. In this case the taxon id of _Clostridium perfringens_ is `1502`. So the command line to download all assemblies of this species is:
+If you only want to get all _C. perfringens_ reads reported in ENA, you can get all the FASTA files for a given taxon ID. In this case the taxon id of _C. perfringens_ is `1502`. So the command line to download all reads of this species is:
 
 `getENA.py -o Cperfringens -tax 1502`
 
-This command line will generate a `genomes` directory within the Cperfringens folder where all assemblies reported to date are placed
+This command line will generate a `Cperfringens` directory contains all reads reported to date. Using this option two tsv documents will be generated in the tmp directory inside Cperfringens: metadata_1502_\*.tsv and metadata_filtred_1502_\*.tsv where the first one contains all the public data of the species and the second one has the data of the codes that are WGS.
 
 # Licence
 
 [GPL v3](https://raw.githubusercontent.com/EnzoAndree/getENA/master/LICENSE)
+
+# Citations
+You should also cite this software (currently unpublished) as:
+
+Guerrero-Araya E, `getENA` Github https://github.com/EnzoAndree/getENA
 
 ## Author
 
