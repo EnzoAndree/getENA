@@ -6,11 +6,14 @@ file that we need. However, we can spend a lot of time downloading files manuall
 
 I have developed a small project in Python to be able to do this work in an automated and parallel way to increase the performance.
 ## Installation
+
+From GitHub (last version)
+`pip install git+https://github.com/EnzoAndree/getENA`
+
+Alternatively, from pip
+
 `pip install getENA`
 
-Alternatively, from GitHub
-
-`pip install git+https://github.com/EnzoAndree/getENA`
 ## Usage
 Let's say I'm interested in _Clostridium perfringens_ sequencing projects (WGS in Illumina platform, not RNA-seq nor Metagenomics); we have to search ENA for public sequencing projects at https://www.ebi.ac.uk/ena/browser/text-search?query=clostridium%20perfringens. Here, we choose the codes that we need, for example:
 
